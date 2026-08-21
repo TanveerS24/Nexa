@@ -377,18 +377,38 @@ class _ProfileDialogState extends State<ProfileDialog> {
                   icon: const Icon(Icons.logout_rounded, size: 20),
                   label: const Text('Sign Out'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.withValues(alpha: 0.15),
-                    foregroundColor: const Color(0xFFFF8B8B),
+                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    foregroundColor: AppColors.textWhite,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: Colors.red.withValues(alpha: 0.3)),
+                      side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
                     ),
                     elevation: 0,
                   ),
                 ),
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
+
+              // Delete Account Button
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: TextButton.icon(
+                  onPressed: _showDeleteConfirmationDialog,
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFFF6B6B)),
+                  label: const Text(
+                    'Delete Account',
+                    style: TextStyle(
+                      color: Color(0xFFFF6B6B),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 4),
 
               // Close Button
               TextButton(
@@ -403,5 +423,57 @@ class _ProfileDialogState extends State<ProfileDialog> {
         ),
       ),
     );
+  }
+
+  Future<void> _showDeleteConfirmationDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.backgroundCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.red.withValues(alpha: 0.3)),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFFF5252), size: 24),
+            SizedBox(width: 8),
+            Text(
+              'Delete Account',
+              style: TextStyle(
+                color: AppColors.textWhite,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to delete your account? This action cannot be undone. All your profile information, workouts, and todos will be permanently deleted.',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF3B30),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Delete Permanently', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      Navigator.of(context).pop(); // close profile dialog
+      await AuthService.deleteAccount();
+      widget.onSignOut();
+    }
   }
 }

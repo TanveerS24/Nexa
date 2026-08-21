@@ -270,6 +270,42 @@ class AuthService {
 
     return profile;
   }
+
+  /**
+   * Delete user account and associated profile/data
+   */
+  async deleteAccount(userId, reqId = 'N/A') {
+    logger.info(`[${reqId}] [AuthService] Deleting user account and data for ID: ${userId}`);
+    const dbClient = supabaseAdmin || supabase;
+
+    if (!dbClient) {
+      logger.error(`[${reqId}] [AuthService] Cannot delete user: No Supabase database client configured.`);
+      throw new Error('Database client not initialized');
+    }
+
+    try {
+      // 1. Delete associated data
+      await dbClient.from('profiles').delete().eq('id', userId);
+      await dbClient.from('todos').delete().eq('user_id', userId);
+      await dbClient.from('gym_workouts').delete().eq('user_id', userId);
+
+      // 2. Delete auth user if admin client available
+      if (supabaseAdmin && supabaseAdmin.auth && supabaseAdmin.auth.admin) {
+        const { error: adminErr } = await supabaseAdmin.auth.admin.deleteUser(userId);
+        if (adminErr) {
+          logger.warn(`[${reqId}] [AuthService] Supabase admin deleteUser warning: ${adminErr.message}`);
+        } else {
+          logger.info(`[${reqId}] [AuthService] Supabase Auth user deleted successfully for ID: ${userId}`);
+        }
+      }
+
+      logger.info(`[${reqId}] [AuthService] User account deleted successfully for ID: ${userId}`);
+      return { success: true, message: 'Account deleted successfully' };
+    } catch (err) {
+      logger.error(`[${reqId}] [AuthService] Error deleting account for ID ${userId}:`, err);
+      throw err;
+    }
+  }
 }
 
 module.exports = new AuthService();

@@ -73,12 +73,12 @@ class ApiClient {
       final payload = {
         'email': email,
         'password': password,
-        if (displayName != null) 'displayName': displayName,
+        ?'displayName': displayName,
         if (dob != null)
           'dob':
               "${dob.year.toString().padLeft(4, '0')}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}",
-        if (height != null) 'height': height,
-        if (weight != null) 'weight': weight,
+        ?'height': height,
+        ?'weight': weight,
         'sendOtp': sendOtp,
       };
 
@@ -141,7 +141,7 @@ class ApiClient {
       final url = Uri.parse('$baseUrl/auth/send-otp');
       final payload = {
         'email': email,
-        if (userName != null) 'userName': userName,
+        ?'userName': userName,
       };
 
       if (kDebugMode) print('[ApiClient] POST $url -> payload: ${jsonEncode(payload)}');

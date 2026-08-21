@@ -200,6 +200,24 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
+/**
+ * Delete current user account and profile
+ * DELETE /api/v1/auth/delete-account
+ */
+const deleteAccount = async (req, res, next) => {
+  const reqId = req.id || 'N/A';
+  try {
+    logger.info(`[${reqId}] [AuthController] Delete account requested for user ID: ${req.user.id}`);
+    const result = await authService.deleteAccount(req.user.id, reqId);
+
+    logger.info(`[${reqId}] [AuthController] Account deleted successfully for user ID: ${req.user.id}`);
+    res.status(200).json(result);
+  } catch (error) {
+    logger.error(`[${reqId}] [AuthController] DeleteAccount error:`, error.message);
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -207,4 +225,5 @@ module.exports = {
   verifyOtp,
   getMe,
   updateProfile,
+  deleteAccount,
 };

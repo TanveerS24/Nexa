@@ -6,6 +6,7 @@ const {
   verifyOtp,
   getMe,
   updateProfile,
+  deleteAccount,
 } = require('../controllers/auth.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 
@@ -20,5 +21,7 @@ router.post('/verify-otp', verifyOtp);
 // Protected routes (Require Supabase JWT Bearer token)
 router.get('/me', requireAuth, getMe);
 router.put('/profile', requireAuth, updateProfile);
+router.delete('/delete-account', requireAuth, deleteAccount);
+router.delete('/profile', requireAuth, deleteAccount);
 
 module.exports = router;

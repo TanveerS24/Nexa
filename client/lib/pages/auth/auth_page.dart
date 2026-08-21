@@ -4,7 +4,6 @@ import '../../components/layout/ambient_background.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../services/api/api_client.dart';
-import '../../services/emailjs/emailjs_service.dart';
 import '../../services/supabase/auth_service.dart';
 
 class AuthPage extends StatefulWidget {
@@ -445,7 +444,7 @@ class _AuthPageState extends State<AuthPage> {
                         Expanded(
                           child: _buildTextField(
                             controller: _heightController,
-                            hintText: 'Height (cm) - opt',
+                            hintText: 'Height (Optional)',
                             icon: Icons.height_rounded,
                             keyboardType: TextInputType.number,
                           ),
@@ -454,7 +453,7 @@ class _AuthPageState extends State<AuthPage> {
                         Expanded(
                           child: _buildTextField(
                             controller: _weightController,
-                            hintText: 'Weight (kg) - opt',
+                            hintText: 'Weight (Optional)',
                             icon: Icons.monitor_weight_outlined,
                             keyboardType: TextInputType.number,
                           ),

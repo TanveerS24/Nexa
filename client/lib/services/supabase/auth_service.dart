@@ -41,11 +41,11 @@ class AuthService {
       email: email,
       password: password,
       data: {
-        if (displayName != null) 'display_name': displayName,
-        if (dobString != null) 'dob': dobString,
-        if (calculatedAge != null) 'age': calculatedAge,
-        if (height != null) 'height': height,
-        if (weight != null) 'weight': weight,
+        ?'display_name': displayName,
+        ?'dob': dobString,
+        ?'age': calculatedAge,
+        ?'height': height,
+        ?'weight': weight,
       },
     );
 
@@ -131,6 +131,21 @@ class AuthService {
     await _client.auth.signOut();
   }
 
+  static Future<void> deleteAccount() async {
+    final user = currentUser;
+    if (user == null) return;
+    try {
+      // Clean up user records from database
+      await _client.from('profiles').delete().eq('id', user.id);
+      await _client.from('todos').delete().eq('user_id', user.id);
+      await _client.from('gym_workouts').delete().eq('user_id', user.id);
+    } catch (e) {
+      if (kDebugMode) print('[AuthService] Error deleting user profile data: $e');
+    }
+    // Sign out from local session
+    await _client.auth.signOut();
+  }
+
   static Future<void> updateProfile({
     String? displayName,
     DateTime? dob,
@@ -148,11 +163,11 @@ class AuthService {
     // Update user metadata
     final updatedMeta = {
       ...user.userMetadata ?? {},
-      if (displayName != null) 'display_name': displayName,
-      if (dobString != null) 'dob': dobString,
-      if (calculatedAge != null) 'age': calculatedAge,
-      if (height != null) 'height': height,
-      if (weight != null) 'weight': weight,
+      ?'display_name': displayName,
+      ?'dob': dobString,
+      ?'age': calculatedAge,
+      ?'height': height,
+      ?'weight': weight,
     };
 
     await _client.auth.updateUser(UserAttributes(data: updatedMeta));
@@ -179,11 +194,11 @@ class AuthService {
     try {
       await _client.from('profiles').upsert({
         'id': userId,
-        if (displayName != null) 'display_name': displayName,
-        if (dobString != null) 'dob': dobString,
-        if (calculatedAge != null) 'age': calculatedAge,
-        if (height != null) 'height': height,
-        if (weight != null) 'weight': weight,
+        ?'display_name': displayName,
+        ?'dob': dobString,
+        ?'age': calculatedAge,
+        ?'height': height,
+        ?'weight': weight,
         'updated_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {

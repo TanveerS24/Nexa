@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'secure_local_storage.dart';
 
 class SupabaseService {
   static const String defaultUrl = 'https://yvstmiiytixlbwgzanez.supabase.co';
@@ -25,10 +26,13 @@ class SupabaseService {
       await Supabase.initialize(
         url: supabaseUrl,
         anonKey: supabasePublishableKey, // ignore: deprecated_member_use
+        authOptions: const FlutterAuthClientOptions(
+          localStorage: SecureLocalStorage(),
+        ),
       );
       _client = Supabase.instance.client;
       if (kDebugMode) {
-        print('[SupabaseService] Supabase initialized successfully with $supabaseUrl.');
+        print('[SupabaseService] Supabase initialized with SecureLocalStorage (EncryptedSharedPreferences & Keychain).');
       }
     } catch (e) {
       if (kDebugMode) {
