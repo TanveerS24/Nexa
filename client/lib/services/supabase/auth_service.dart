@@ -41,11 +41,11 @@ class AuthService {
       email: email,
       password: password,
       data: {
-        ?'display_name': displayName,
-        ?'dob': dobString,
-        ?'age': calculatedAge,
-        ?'height': height,
-        ?'weight': weight,
+        if (displayName != null) 'display_name': displayName,
+        if (dobString != null) 'dob': dobString,
+        if (calculatedAge != null) 'age': calculatedAge,
+        if (height != null) 'height': height,
+        if (weight != null) 'weight': weight,
       },
     );
 
@@ -148,11 +148,11 @@ class AuthService {
     // Update user metadata
     final updatedMeta = {
       ...user.userMetadata ?? {},
-      ?'display_name': displayName,
-      ?'dob': dobString,
-      ?'age': calculatedAge,
-      ?'height': height,
-      ?'weight': weight,
+      if (displayName != null) 'display_name': displayName,
+      if (dobString != null) 'dob': dobString,
+      if (calculatedAge != null) 'age': calculatedAge,
+      if (height != null) 'height': height,
+      if (weight != null) 'weight': weight,
     };
 
     await _client.auth.updateUser(UserAttributes(data: updatedMeta));
@@ -179,11 +179,11 @@ class AuthService {
     try {
       await _client.from('profiles').upsert({
         'id': userId,
-        ?'display_name': displayName,
-        ?'dob': dobString,
-        ?'age': calculatedAge,
-        ?'height': height,
-        ?'weight': weight,
+        if (displayName != null) 'display_name': displayName,
+        if (dobString != null) 'dob': dobString,
+        if (calculatedAge != null) 'age': calculatedAge,
+        if (height != null) 'height': height,
+        if (weight != null) 'weight': weight,
         'updated_at': DateTime.now().toIso8601String(),
       });
     } catch (e) {

@@ -4,8 +4,8 @@ class TodoService {
   /**
    * Minimal Todo service placeholder for modular architecture
    */
-  async getStatus() {
-    logger.info('TodoService: getStatus invoked');
+  async getStatus(reqId = 'N/A') {
+    logger.info(`[${reqId}] [TodoService] getStatus invoked`);
     return {
       module: 'todo',
       status: 'ready',

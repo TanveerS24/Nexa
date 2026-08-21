@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const morgan = require('morgan');
 const routes = require('./routes');
+const { requestLogger } = require('./middleware/logging.middleware');
 const { errorHandler, notFoundHandler } = require('./middleware/error.middleware');
 
 const app = express();
@@ -13,12 +13,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-if (process.env.NODE_ENV !== 'test') {
-  app.use(morgan('dev'));
-}
+// Comprehensive request & response logger
+app.use(requestLogger);
 
 // API Routes
-app.use('/api', routes);
+app.use('/api/v1', routes);
 
 // 404 & Error Handlers
 app.use(notFoundHandler);

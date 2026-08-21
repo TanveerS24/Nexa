@@ -102,3 +102,23 @@ DROP POLICY IF EXISTS "Users can delete their own workouts" ON public.gym_workou
 CREATE POLICY "Users can delete their own workouts"
 ON public.gym_workouts FOR DELETE
 USING (auth.uid() = user_id);
+
+
+-- 4. OTPs Table (Stores bcrypt-hashed OTPs with expiration)
+CREATE TABLE IF NOT EXISTS public.otps (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    otp_hash TEXT NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_otps_email ON public.otps(email);
+ALTER TABLE public.otps ENABLE ROW LEVEL SECURITY;
+
+-- Service role bypasses RLS, but allow public operations if anon key is used with backend
+DROP POLICY IF EXISTS "Allow backend OTP access" ON public.otps;
+CREATE POLICY "Allow backend OTP access"
+ON public.otps FOR ALL
+USING (true)
+WITH CHECK (true);

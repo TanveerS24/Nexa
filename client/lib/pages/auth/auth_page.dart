@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../components/layout/ambient_background.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../services/api/api_client.dart';
 import '../../services/emailjs/emailjs_service.dart';
 import '../../services/supabase/auth_service.dart';
 
@@ -20,6 +21,7 @@ class _AuthPageState extends State<AuthPage> {
   bool _isOtpVerificationStep = false;
   bool _isLoading = false;
   bool _isResending = false;
+  bool _obscurePassword = true;
   String? _errorMessage;
   String? _infoMessage;
 
@@ -118,25 +120,43 @@ class _AuthPageState extends State<AuthPage> {
       final name = _nameController.text.trim();
 
       if (_isSignUp) {
-        // Send 6-digit OTP via EmailJS
-        await OtpManager.generateAndSendOtp(
+        // Request 6-digit OTP from Backend API
+        final result = await ApiClient.sendOtp(
           email: email,
-          userName: name,
+          userName: name.isNotEmpty ? name : null,
         );
 
-        _startResendTimer();
-        setState(() {
-          _isOtpVerificationStep = true;
-          _infoMessage = 'A 6-digit verification code has been sent to $email.';
-        });
+        if (result['success'] == true) {
+          _startResendTimer();
+          setState(() {
+            _isOtpVerificationStep = true;
+            _infoMessage = 'A 6-digit verification code has been sent to $email.';
+          });
+        } else {
+          setState(() {
+            _errorMessage = result['message']?.toString() ??
+                result['error']?.toString() ??
+                'Failed to send OTP. Please try again.';
+          });
+        }
       } else {
-        // Direct Sign In
-        final response = await AuthService.signIn(
+        // Direct Sign In via Backend API and Supabase
+        final result = await ApiClient.login(
           email: email,
           password: password,
         );
-        if (response.user != null) {
+
+        if (result['success'] == true) {
+          try {
+            await AuthService.signIn(email: email, password: password);
+          } catch (_) {}
           widget.onAuthenticated();
+        } else {
+          setState(() {
+            _errorMessage = result['message']?.toString() ??
+                result['error']?.toString() ??
+                'Invalid login credentials.';
+          });
         }
       }
     } catch (e) {
@@ -170,21 +190,22 @@ class _AuthPageState extends State<AuthPage> {
     final height = double.tryParse(_heightController.text.trim());
     final weight = double.tryParse(_weightController.text.trim());
 
-    // Verify OTP using EmailJS OtpManager or direct validation
-    final isOtpValid = OtpManager.verifyOtp(email, token);
-
-    if (!isOtpValid) {
-      // Also attempt fallback OTP check or notify invalid
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Invalid or expired OTP code. Please try again.';
-      });
-      return;
-    }
-
     try {
-      // Once OTP is verified, register/complete user in Supabase
-      final response = await AuthService.signUp(
+      // 1. Verify OTP with Backend (validates bcrypt hash in database)
+      final verifyRes = await ApiClient.verifyOtp(email: email, otp: token);
+
+      if (verifyRes['success'] != true) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = verifyRes['message']?.toString() ??
+              verifyRes['error']?.toString() ??
+              'Invalid or expired OTP code. Please try again.';
+        });
+        return;
+      }
+
+      // 2. Register user with Backend API
+      final regRes = await ApiClient.register(
         email: email,
         password: password,
         displayName: name.isNotEmpty ? name : null,
@@ -193,12 +214,18 @@ class _AuthPageState extends State<AuthPage> {
         weight: weight,
       );
 
-      if (response.user != null || response.session != null) {
+      if (regRes['success'] == true) {
+        // Sign in on client Supabase instance to establish local session
+        try {
+          await AuthService.signIn(email: email, password: password);
+        } catch (_) {}
         widget.onAuthenticated();
       } else {
-        // Attempt sign in if user already exists
-        await AuthService.signIn(email: email, password: password);
-        widget.onAuthenticated();
+        setState(() {
+          _errorMessage = regRes['message']?.toString() ??
+              regRes['error']?.toString() ??
+              'Registration failed. Please try again.';
+        });
       }
     } catch (e) {
       setState(() {
@@ -224,16 +251,26 @@ class _AuthPageState extends State<AuthPage> {
       final email = _emailController.text.trim();
       final name = _nameController.text.trim();
 
-      await OtpManager.generateAndSendOtp(
+      final res = await ApiClient.sendOtp(
         email: email,
-        userName: name,
+        userName: name.isNotEmpty ? name : null,
       );
 
-      _startResendTimer();
-      if (mounted) {
-        setState(() {
-          _infoMessage = 'A new 6-digit verification code has been sent!';
-        });
+      if (res['success'] == true) {
+        _startResendTimer();
+        if (mounted) {
+          setState(() {
+            _infoMessage = 'A new 6-digit verification code has been sent!';
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _errorMessage = res['message']?.toString() ??
+                res['error']?.toString() ??
+                'Failed to resend code.';
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -448,7 +485,21 @@ class _AuthPageState extends State<AuthPage> {
                     controller: _passwordController,
                     hintText: 'Password',
                     icon: Icons.lock_outline_rounded,
-                    obscureText: true,
+                    obscureText: _obscurePassword,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
                     validator: (val) {
                       if (val == null || val.length < 6) {
                         return 'Password must be at least 6 characters';
@@ -736,6 +787,7 @@ class _AuthPageState extends State<AuthPage> {
     required String hintText,
     required IconData icon,
     bool obscureText = false,
+    Widget? suffixIcon,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
@@ -751,6 +803,7 @@ class _AuthPageState extends State<AuthPage> {
         hintText: hintText,
         hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
         prefixIcon: Icon(icon, color: AppColors.textSecondary, size: 20),
+        suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
